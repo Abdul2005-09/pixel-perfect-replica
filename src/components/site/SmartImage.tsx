@@ -12,11 +12,11 @@ export function SmartImage({
   imgClassName,
   eager,
 }: {
-  src?: string;
+  src?: string | undefined;
   alt: string;
-  className?: string;
-  imgClassName?: string;
-  eager?: boolean;
+  className?: string | undefined;
+  imgClassName?: string | undefined;
+  eager?: boolean | undefined;
 }) {
   const [wide, setWide] = useState(false);
   if (!src) return <div className={cn("bg-tile", className)} />;

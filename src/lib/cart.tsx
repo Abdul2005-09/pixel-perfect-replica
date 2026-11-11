@@ -6,7 +6,7 @@ export type BagItem = {
   slug: string;
   name: string;
   price: number;
-  image?: string;
+  image?: string | undefined;
   colour: string | null;
   size: string;
   quantity: number;

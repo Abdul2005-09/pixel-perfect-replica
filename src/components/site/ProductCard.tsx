@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { SmartImage } from "./SmartImage";
 import { QuickView } from "./QuickView";
 
-export function ProductCard({ product, eager }: { product: Product; eager?: boolean }) {
+export function ProductCard({ product, eager }: { product: Product; eager?: boolean | undefined }) {
   const { wishlist, toggleWish } = useBag();
   const [quick, setQuick] = useState(false);
   const wished = wishlist.includes(product.slug);
@@ -61,7 +61,7 @@ export function ProductCard({ product, eager }: { product: Product; eager?: bool
   );
 }
 
-export function ProductGrid({ products, eagerFirst }: { products: Product[]; eagerFirst?: boolean }) {
+export function ProductGrid({ products, eagerFirst }: { products: Product[]; eagerFirst?: boolean | undefined }) {
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 md:gap-x-6 lg:grid-cols-4">
       {products.map((p, i) => (
