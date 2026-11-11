@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 
 const NAV = [
-  { label: "Shop", to: "/shop" as const, search: {} },
+  { label: "Shop", to: "/shop" as const, search: { collection: undefined } },
   { label: "Polos", to: "/shop" as const, search: { collection: "polos" } },
   { label: "T-Shirts", to: "/shop" as const, search: { collection: "graphic-tees" } },
   { label: "New In", to: "/shop" as const, search: { collection: "new-arrivals" } },
