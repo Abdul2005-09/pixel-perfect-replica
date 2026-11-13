@@ -18,7 +18,27 @@ export function collectionName(slug: string | undefined) {
   return COLLECTIONS.find((c) => c.slug === slug)?.name ?? "All Products";
 }
 
-export type ProductImage = { id: string; url: string; kind: string; sort_order: number };
+export type ProductImage = { id: string; url: string; kind: string; sort_order: number; path: string };
+
+/** Uploaded photos live in private storage; the database keeps "storage:<path>". */
+export const IMAGE_BUCKET = "product-images";
+export const STORAGE_PREFIX = "storage:";
+const SIGNED_URL_SECONDS = 60 * 60 * 24 * 7;
+
+export async function signImageUrls(urls: string[]): Promise<Map<string, string>> {
+  const paths = [...new Set(urls.filter((u) => u.startsWith(STORAGE_PREFIX)).map((u) => u.slice(STORAGE_PREFIX.length)))];
+  const map = new Map<string, string>();
+  if (!paths.length) return map;
+  const { data } = await supabase.storage.from(IMAGE_BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
+  for (const d of data ?? []) if (d.signedUrl && d.path) map.set(STORAGE_PREFIX + d.path, d.signedUrl);
+  return map;
+}
+
+async function withSignedImages(products: Product[]): Promise<Product[]> {
+  const map = await signImageUrls(products.flatMap((p) => p.images.map((i) => i.path)));
+  if (!map.size) return products;
+  return products.map((p) => ({ ...p, images: p.images.map((i) => ({ ...i, url: map.get(i.path) ?? i.url })) }));
+}
 export type ProductVariant = { id: string; colour_name: string; colour_hex: string; sort_order: number };
 export type InventoryRow = { id: string; size: string; quantity: number };
 
@@ -47,7 +67,8 @@ function normalize(row: any): Product {
   const { product_images, product_variants, inventory, ...rest } = row;
   return {
     ...rest,
-    images: [...(product_images ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    images: [...(product_images ?? [])].map((i: any) => ({ ...i, path: i.url })).sort((a, b) => a.sort_order - b.sort_order),
     variants: [...(product_variants ?? [])].sort((a, b) => a.sort_order - b.sort_order),
     inventory: inventory ?? [],
   };
@@ -63,7 +84,7 @@ export const productsQuery = () =>
         .eq("status", "active")
         .order("sort_order");
       if (error) throw error;
-      return (data ?? []).map(normalize);
+      return withSignedImages((data ?? []).map(normalize));
     },
   });
 
@@ -77,7 +98,7 @@ export const productQuery = (slug: string) =>
         .eq("slug", slug)
         .maybeSingle();
       if (error) throw error;
-      return data ? normalize(data) : null;
+      return data ? (await withSignedImages([normalize(data)]))[0]! : null;
     },
   });
 
@@ -87,7 +108,7 @@ export const adminProductsQuery = () =>
     queryFn: async () => {
       const { data, error } = await supabase.from("products").select(SELECT).order("sort_order");
       if (error) throw error;
-      return (data ?? []).map(normalize);
+      return withSignedImages((data ?? []).map(normalize));
     },
   });
 
@@ -97,7 +118,7 @@ export const adminProductQuery = (id: string) =>
     queryFn: async () => {
       const { data, error } = await supabase.from("products").select(SELECT).eq("id", id).maybeSingle();
       if (error) throw error;
-      return data ? normalize(data) : null;
+      return data ? (await withSignedImages([normalize(data)]))[0]! : null;
     },
   });
 
