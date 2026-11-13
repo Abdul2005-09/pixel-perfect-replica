@@ -10,7 +10,7 @@ import { safeRedirect, useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>): { redirect?: string | undefined } =>
-    typeof s.redirect === "string" ? { redirect: s.redirect } : {},
+    typeof s["redirect"] === "string" ? { redirect: s["redirect"] } : {},
   head: () => ({ meta: [{ title: "Sign in — ASTRA STYLIN" }, { name: "description", content: "Sign in or create your ASTRA STYLIN account." }, { property: "og:title", content: "Sign in — ASTRA STYLIN" }, { property: "og:description", content: "Sign in or create your ASTRA STYLIN account." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }] }),
   component: Login,
 });

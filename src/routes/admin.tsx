@@ -29,14 +29,14 @@ function Admin() {
   async function setStock(productId: string, size: string, value: string) {
     const quantity = Math.max(0, parseInt(value || "0", 10) || 0);
     const { error } = await supabase.from("inventory").upsert({ product_id: productId, size, quantity }, { onConflict: "product_id,size" });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Stock saved");
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["admin", "products"] });
   }
   async function setStatus(id: string, status: (typeof STATUSES)[number]) {
     const { error } = await supabase.rpc("admin_set_order_status", { p_order_id: id, p_status: status });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Order updated");
     qc.invalidateQueries({ queryKey: ["admin"] });
   }

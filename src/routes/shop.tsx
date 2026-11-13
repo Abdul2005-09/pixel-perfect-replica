@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/shop")({
   validateSearch: (s: Record<string, unknown>): { collection?: string | undefined } =>
-    typeof s.collection === "string" ? { collection: s.collection } : {},
+    typeof s["collection"] === "string" ? { collection: s["collection"] } : {},
   head: () => ({ meta: meta("Shop All — ASTRA STYLIN", "Shop ASTRA STYLIN polos, zip polos, textured and graphic T-shirts.") }),
   loader: ({ context }) => context.queryClient.ensureQueryData(productsQuery()),
   component: Shop,

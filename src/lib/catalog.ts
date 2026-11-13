@@ -167,14 +167,14 @@ export function slugify(s: string) {
 
 /** Collections that currently contain at least one active product. */
 export function collectionsWithProducts(products: Product[]) {
-  const list: { slug: string; name: string; image?: string; count: number }[] = [];
+  const list: { slug: string; name: string; image?: string | undefined; count: number }[] = [];
   for (const c of COLLECTIONS) {
     const items = products.filter((p) => p.collection === c.slug);
-    if (items.length) list.push({ slug: c.slug, name: c.name, image: primaryImage(items[0]), count: items.length });
+    if (items.length) list.push({ slug: c.slug, name: c.name, image: primaryImage(items[0]!), count: items.length });
   }
   const fresh = products.filter((p) => p.is_new);
   if (fresh.length)
-    list.push({ slug: NEW_ARRIVALS.slug, name: NEW_ARRIVALS.name, image: primaryImage(fresh[fresh.length - 1]), count: fresh.length });
+    list.push({ slug: NEW_ARRIVALS.slug, name: NEW_ARRIVALS.name, image: primaryImage(fresh[fresh.length - 1]!), count: fresh.length });
   return list;
 }
 

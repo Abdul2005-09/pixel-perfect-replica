@@ -31,7 +31,7 @@ function Account() {
 
   async function claim() {
     const { data, error } = await supabase.rpc("claim_first_admin");
-    if (error || !data) return toast.error(error?.message ?? "An admin already exists");
+    if (error || !data) { toast.error(error?.message ?? "An admin already exists"); return; }
     toast.success("You are now the store admin");
     qc.invalidateQueries({ queryKey: ["roles"] });
   }
@@ -45,7 +45,7 @@ function Account() {
     <section className="mx-auto max-w-4xl px-5 py-16">
       <p className="eyebrow text-burgundy">My account</p>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-        <div><h1 className="font-display text-5xl">Hello{user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name}` : ""}</h1><p className="mt-2 text-sm text-muted-foreground">{user?.email}</p></div>
+        <div><h1 className="font-display text-5xl">Hello{user?.user_metadata?.["full_name"] ? `, ${user.user_metadata["full_name"]}` : ""}</h1><p className="mt-2 text-sm text-muted-foreground">{user?.email}</p></div>
         <div className="flex gap-3">
           {roles?.isAdmin && <Button asChild variant="outline"><Link to="/admin">Store admin</Link></Button>}
           {roles && !roles.adminExists && <Button variant="outline" onClick={claim}>Become store admin</Button>}
