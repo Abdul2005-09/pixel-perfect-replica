@@ -10,7 +10,7 @@ import { QuickView } from "./QuickView";
 export function ProductCard({ product, eager }: { product: Product; eager?: boolean | undefined }) {
   const { wishlist, toggleWish } = useBag();
   const [quick, setQuick] = useState(false);
-  const wished = wishlist.includes(product.slug);
+  const wished = wishlist.includes(product.id);
   const status = availability(product);
   const hover = secondaryImage(product);
 
@@ -40,7 +40,7 @@ export function ProductCard({ product, eager }: { product: Product; eager?: bool
         </div>
       </Link>
       <button
-        onClick={() => toggleWish(product.slug)}
+        onClick={() => toggleWish(product.id)}
         aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
         className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-full bg-background/80 transition-colors hover:bg-background"
       >

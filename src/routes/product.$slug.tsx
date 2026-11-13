@@ -33,7 +33,7 @@ function ProductPage() {
   if (!product) return null;
   const images = [...product.images].sort((a, b) => (a.kind === "model" ? -1 : b.kind === "model" ? 1 : a.sort_order - b.sort_order));
   const related = all.filter((p) => p.id !== product.id && p.collection === product.collection).concat(all.filter((p) => p.id !== product.id && p.collection !== product.collection)).slice(0, 4);
-  const wished = wishlist.includes(product.slug);
+  const wished = wishlist.includes(product.id);
   return (
     <>
       <section className="mx-auto grid max-w-[1440px] gap-10 px-5 py-10 md:grid-cols-[1.2fr_1fr] md:px-10 lg:gap-16">
@@ -51,7 +51,7 @@ function ProductPage() {
           <Link to="/shop" search={{ collection: product.collection }} className="eyebrow text-muted-foreground hover:text-burgundy">{collectionName(product.collection)}</Link>
           <div className="mt-3 flex items-start justify-between gap-4">
             <h1 className="font-display text-5xl leading-none">{product.name}</h1>
-            <button onClick={() => toggleWish(product.slug)} aria-label="Wishlist"><Heart className={cn("size-5", wished && "fill-burgundy text-burgundy")} strokeWidth={1.4} /></button>
+            <button onClick={() => toggleWish(product.id)} aria-label="Wishlist"><Heart className={cn("size-5", wished && "fill-burgundy text-burgundy")} strokeWidth={1.4} /></button>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{product.subtitle}</p>
           <p className="mt-5 text-xl">{formatINR(product.price)}</p>
