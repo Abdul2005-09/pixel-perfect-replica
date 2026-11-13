@@ -15,7 +15,7 @@ export const Route = createFileRoute("/wishlist")({
 function Wishlist() {
   const { wishlist } = useBag();
   const { data } = useSuspenseQuery(productsQuery());
-  const list = data.filter((p) => wishlist.includes(p.slug));
+  const list = data.filter((p) => wishlist.includes(p.id));
   return (
     <section className="mx-auto max-w-[1440px] px-5 py-16 md:px-10">
       <h1 className="font-display text-center text-5xl uppercase md:text-7xl">Wishlist</h1>
