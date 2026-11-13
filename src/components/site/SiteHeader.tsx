@@ -75,8 +75,7 @@ export function SiteHeader() {
             <Search className="size-[18px]" strokeWidth={1.4} />
           </button>
           <Link
-            to={user ? "/account" : "/login"}
-            search={user ? undefined : { redirect: undefined }}
+            to="/account"
             aria-label={user ? "My account" : "Sign in"}
             className="hidden hover:text-burgundy sm:block"
           >
@@ -208,8 +207,7 @@ function MenuSheet({
             <Link to="/help" onClick={close} className="eyebrow hover:text-burgundy">Help & Sizing</Link>
             <Link to="/wishlist" onClick={close} className="eyebrow hover:text-burgundy">Wishlist</Link>
             <Link
-              to={signedIn ? "/account" : "/login"}
-              search={signedIn ? undefined : { redirect: undefined }}
+              to="/account"
               onClick={close}
               className="eyebrow hover:text-burgundy"
             >

@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 export function CollectionCarousel({
   items,
 }: {
-  items: { slug: string; name: string; image?: string; count: number }[];
+  items: { slug: string; name: string; image?: string | undefined; count: number }[];
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const scroll = (dir: 1 | -1) => {
