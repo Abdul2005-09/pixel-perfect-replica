@@ -168,7 +168,7 @@ function MenuSheet({
   const close = () => onOpenChange(false);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-full max-w-sm border-none bg-background p-0 [&>button]:hidden">
+      <SheetContent side="left" className="h-[100dvh] w-full max-w-sm overflow-hidden border-none bg-background p-0 [&>button]:hidden">
         <SheetTitle className="sr-only">Menu</SheetTitle>
         <div className="flex h-20 items-center justify-between border-b px-6">
           <Logo className="h-10 w-auto" />
@@ -176,43 +176,43 @@ function MenuSheet({
             <X className="size-5" strokeWidth={1.4} />
           </button>
         </div>
-        <nav className="flex flex-col px-6 py-8">
-          <p className="eyebrow mb-4 text-muted-foreground">Collections</p>
-          <Link to="/shop" onClick={close} className="font-display py-2 text-3xl hover:text-burgundy">
-            All Products
-          </Link>
-          {COLLECTIONS.map((c) => (
-            <Link
-              key={c.slug}
-              to="/shop"
-              search={{ collection: c.slug }}
-              onClick={close}
-              className="font-display py-2 text-3xl hover:text-burgundy"
-            >
-              {c.name}
+        <nav className="flex h-[calc(100dvh-5rem)] min-h-0 flex-col overflow-y-auto overscroll-contain px-6 py-6">
+          <div className="grid grid-cols-2 gap-3">
+            <Link to="/account" onClick={close} className="flex min-h-12 items-center gap-2 border border-border px-3 text-xs tracking-wide hover:border-burgundy hover:text-burgundy">
+              <User className="size-4" strokeWidth={1.5} /> {signedIn ? "My Account" : "Sign In"}
             </Link>
-          ))}
-          <Link
-            to="/shop"
-            search={{ collection: "new-arrivals" }}
-            onClick={close}
-            className="font-display py-2 text-3xl hover:text-burgundy"
-          >
-            New Arrivals
-          </Link>
-          <div className="my-8 h-px bg-border" />
-          <div className="grid grid-cols-2 gap-y-3">
+            <Link to="/wishlist" onClick={close} className="flex min-h-12 items-center gap-2 border border-border px-3 text-xs tracking-wide hover:border-burgundy hover:text-burgundy">
+              <Heart className="size-4" strokeWidth={1.5} /> Wishlist
+            </Link>
+            <Link to="/shop" onClick={close} className="col-span-2 flex min-h-12 items-center gap-2 border border-border px-3 text-xs tracking-wide hover:border-burgundy hover:text-burgundy">
+              <ShoppingBag className="size-4" strokeWidth={1.5} /> Shop all products
+            </Link>
+          </div>
+
+          <div className="my-6 h-px shrink-0 bg-border" />
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between py-2">
+              <span className="eyebrow text-muted-foreground">Browse collections</span>
+              <span className="text-xl leading-none transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <div className="mt-3 flex flex-col border-l border-border pl-4">
+              <Link to="/shop" onClick={close} className="font-display py-2 text-2xl hover:text-burgundy">All Products</Link>
+              {COLLECTIONS.map((c) => (
+                <Link key={c.slug} to="/shop" search={{ collection: c.slug }} onClick={close} className="font-display py-2 text-2xl hover:text-burgundy">
+                  {c.name}
+                </Link>
+              ))}
+              <Link to="/shop" search={{ collection: "new-arrivals" }} onClick={close} className="font-display py-2 text-2xl hover:text-burgundy">New Arrivals</Link>
+            </div>
+          </details>
+
+          <div className="my-6 h-px shrink-0 bg-border" />
+          <p className="eyebrow mb-4 text-muted-foreground">Information</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4 pb-8">
             <Link to="/about" onClick={close} className="eyebrow hover:text-burgundy">About Astra</Link>
             <Link to="/contact" onClick={close} className="eyebrow hover:text-burgundy">Contact</Link>
             <Link to="/help" onClick={close} className="eyebrow hover:text-burgundy">Help & Sizing</Link>
-            <Link to="/wishlist" onClick={close} className="eyebrow hover:text-burgundy">Wishlist</Link>
-            <Link
-              to="/account"
-              onClick={close}
-              className="eyebrow hover:text-burgundy"
-            >
-              {signedIn ? "My Account" : "Sign In"}
-            </Link>
+            <Link to="/account" onClick={close} className="eyebrow hover:text-burgundy">Order history</Link>
           </div>
         </nav>
       </SheetContent>
