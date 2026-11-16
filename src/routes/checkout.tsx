@@ -53,6 +53,8 @@ function Checkout() {
     if (save && user) await supabase.from("addresses").insert({ ...addr, line2: addr.line2 || null, user_id: user.id, is_default: saved.length === 0 });
     clear();
     const id = (data as { id: string }).id;
+    const { error: notificationError } = await supabase.functions.invoke("order-notification", { body: { order_id: id } });
+    if (notificationError) console.error("[ASTRA] Admin order email could not be sent:", notificationError.message);
     navigate({ to: "/order/$id", params: { id } });
   }
 
