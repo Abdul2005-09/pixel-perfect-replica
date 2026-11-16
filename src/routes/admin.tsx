@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/auth";
 import {
   COLLECTIONS,
   SIZES,
+  collectionName,
   adminProductsQuery,
   formatINR,
   slugify,
@@ -47,6 +48,9 @@ function Admin() {
     },
   });
   const [showAdd, setShowAdd] = useState(false);
+  const { data: customers = [] } = useQuery({ queryKey: ["admin", "customers"], queryFn: async () => { const { data, error } = await supabase.from("profiles").select("id,email,full_name,phone,created_at").order("created_at", { ascending: false }); if (error) throw error; return data ?? []; } });
+  const { data: storeSettings } = useQuery({ queryKey: ["admin", "store-settings"], queryFn: async () => { const { data, error } = await supabase.from("store_settings").select("*").eq("id", 1).maybeSingle(); if (error) throw error; return data; } });
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const [customCollection, setCustomCollection] = useState(false);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "archived" | "sold_out">("all");
@@ -72,6 +76,10 @@ function Admin() {
     if (filter === "sold_out") return totalStock(p) <= 0;
     return true;
   });
+
+  async function renameCollection(oldSlug: string, name: string) { const next = slugify(name); if (!next) { toast.error("Enter a collection name."); return; } const { error } = await supabase.from("products").update({ collection: next }).eq("collection", oldSlug); if (error) { toast.error(error.message); return; } toast.success("Collection renamed"); await refresh(); }
+
+  async function saveStoreSettings(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); setSettingsSaving(true); const { error } = await supabase.from("store_settings").update({ announcement: String(data.get("announcement") ?? "").trim(), whatsapp_number: String(data.get("whatsapp_number") ?? "").replace(/\\D/g, ""), instagram_url: String(data.get("instagram_url") ?? "").trim() || null, contact_email: String(data.get("contact_email") ?? "").trim() || null }).eq("id", 1); setSettingsSaving(false); if (error) { toast.error(error.message); return; } toast.success("Store settings saved"); await qc.invalidateQueries({ queryKey: ["admin", "store-settings"] }); }
 
   async function refresh() {
     await Promise.all([
@@ -188,8 +196,8 @@ function Admin() {
   }
 
   return (
-    <main className="min-h-screen bg-[#faf8f4] text-[#171513]">
-      <div className="mx-auto max-w-[1440px] px-5 py-8 md:px-10 md:py-12">
+    <main id="overview" className="min-h-screen bg-[#f7f3ed] text-[#211b18]">
+      <div className="mx-auto max-w-[1480px] px-5 py-8 md:px-10 md:py-10">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="eyebrow text-burgundy">ASTRA STYLIN · CONTROL CENTRE</p>
@@ -198,6 +206,7 @@ function Admin() {
           </div>
           <Link to="/" className="eyebrow border border-[#d9d1c7] px-5 py-3 hover:bg-white">View store →</Link>
         </header>
+        <nav className="sticky top-0 z-20 -mx-5 mb-7 flex gap-1 overflow-x-auto border-y border-[#e4dbd1] bg-[#f7f3ed]/95 px-5 py-2 backdrop-blur md:-mx-10 md:px-10">{[{id:"overview",label:"Overview"},{id:"products",label:"Products"},{id:"collections",label:"Collections"},{id:"inventory",label:"Inventory"},{id:"orders",label:"Orders"},{id:"customers",label:"Customers"},{id:"analytics",label:"Analytics"},{id:"store-settings",label:"Settings"}].map(x=><a key={x.id} href={"#"+x.id} className="whitespace-nowrap px-3 py-2 text-[10px] tracking-[0.18em] text-[#695c54] hover:bg-[#742b34] hover:text-white">{x.label}</a>)}</nav>
 
         <section className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Total orders" value={String(orders.length)} detail="All orders received" />
@@ -235,7 +244,7 @@ function Admin() {
           </div>
         </section>
 
-        <section className="mt-10">
+        <section id="products" className="mt-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div><p className="eyebrow text-muted-foreground">CATALOGUE MANAGEMENT</p><h2 className="font-display mt-1 text-3xl">Products</h2></div>
             <button onClick={() => setShowAdd((v) => !v)} className="eyebrow bg-[#171513] px-5 py-3 text-white hover:bg-burgundy">{showAdd ? "Close form" : "+ Add new product"}</button>
@@ -295,7 +304,7 @@ function Admin() {
           <p className="mt-2 text-xs text-muted-foreground">Use the labels to mark new arrivals, feature popular pieces, or archive outdated products. Stock changes are saved to Supabase when you leave a size field.</p>
         </section>
 
-        <section className="mt-12">
+        <section id="orders" className="mt-12">
           <p className="eyebrow text-muted-foreground">FULFILMENT</p><h2 className="font-display mt-1 text-3xl">Recent orders</h2>
           {orders.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">No orders yet.</p> : <div className="mt-4 divide-y border border-[#ded8cf] bg-white">
             {orders.map((o) => <div key={o.id} className="grid gap-3 p-4 text-sm md:grid-cols-[1fr_2fr_auto_auto] md:items-center">
@@ -305,6 +314,45 @@ function Admin() {
               <select value={o.status} onChange={(e) => setStatus(o.id, e.target.value as (typeof STATUSES)[number])} className="h-9 border border-[#ded8cf] bg-white px-2 text-xs uppercase tracking-widest">{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
             </div>)}
           </div>}
+        </section>
+
+        <section id="collections" className="mt-12 border border-[#ded8cf] bg-white p-5 md:p-7">
+          <p className="eyebrow text-muted-foreground">CATALOGUE STRUCTURE</p><h2 className="font-display mt-1 text-3xl">Collections</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Rename a collection to update every product assigned to it. Create new collections when adding a product.</p>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {[...new Set(products.map(p=>p.collection).filter(Boolean))].map(slug=>{const items=products.filter(p=>p.collection===slug);return <form key={slug} onSubmit={e=>{e.preventDefault();void renameCollection(slug,String(new FormData(e.currentTarget).get("name")??""))}} className="border border-[#e9e2d9] p-4">
+              <div className="flex items-center gap-3">{items[0]?.images[0]?.url&&<img src={items[0].images[0].url} alt="" className="size-14 object-cover"/>}<div><p className="font-display text-lg">{collectionName(slug)}</p><p className="text-xs text-muted-foreground">{items.length} products</p></div></div>
+              <div className="mt-4 flex gap-2"><input name="name" defaultValue={collectionName(slug)} className="h-10 min-w-0 flex-1 border border-[#ded8cf] px-3 text-sm"/><button className="bg-[#711e27] px-3 text-xs text-white">Rename</button></div>
+            </form>})}
+          </div>
+        </section>
+
+        <section id="inventory" className="mt-12 border border-[#ded8cf] bg-white p-5 md:p-7">
+          <p className="eyebrow text-muted-foreground">SIZE-BY-SIZE CONTROL</p><h2 className="font-display mt-1 text-3xl">Inventory overview</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Update quantities in the Products table above. This view highlights low-stock sizes.</p>
+          <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead className="bg-[#f1ede6]"><tr><th className="p-3 text-left eyebrow">Product</th>{SIZES.map(z=><th key={z} className="p-3 eyebrow">{z}</th>)}<th className="p-3 eyebrow">Total</th></tr></thead><tbody>{products.map(p=><tr key={p.id} className="border-t border-[#eee9e1]"><td className="p-3">{p.name}</td>{SIZES.map(z=>{const q=p.inventory.find(i=>i.size===z)?.quantity??0;return <td key={z} className={"p-3 text-center "+(q<=2?"font-semibold text-[#9b343d]":"")}>{q}</td>})}<td className="p-3 text-center font-semibold">{totalStock(p)}</td></tr>)}</tbody></table></div>
+        </section>
+
+        <section id="customers" className="mt-12 border border-[#ded8cf] bg-white p-5 md:p-7">
+          <p className="eyebrow text-muted-foreground">CUSTOMER RELATIONSHIPS</p><h2 className="font-display mt-1 text-3xl">Customers</h2><p className="mt-1 text-xs text-muted-foreground">{customers.length} registered customer profiles</p>
+          <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[650px] text-sm"><thead className="bg-[#f1ede6]"><tr><th className="p-3 text-left eyebrow">Customer</th><th className="p-3 text-left eyebrow">Email</th><th className="p-3 text-left eyebrow">Phone</th><th className="p-3 text-left eyebrow">Joined</th></tr></thead><tbody>{customers.map(c=><tr key={c.id} className="border-t border-[#eee9e1]"><td className="p-3">{c.full_name||"Customer"}</td><td className="p-3">{c.email||"—"}</td><td className="p-3">{c.phone||"—"}</td><td className="p-3">{new Date(c.created_at).toLocaleDateString("en-IN")}</td></tr>)}</tbody></table></div>
+          {!customers.length&&<p className="py-6 text-sm text-muted-foreground">No customer profiles available yet.</p>}
+        </section>
+
+        <section id="analytics" className="mt-12 grid gap-5 xl:grid-cols-2">
+          <div className="border border-[#ded8cf] bg-white p-5 md:p-7"><p className="eyebrow text-muted-foreground">BUSINESS PERFORMANCE</p><h2 className="font-display mt-1 text-3xl">Sales insights</h2><div className="mt-5 grid grid-cols-2 gap-4"><Metric label="Average order value" value={formatINR(orders.filter(o=>o.status!=="cancelled").length?revenue/orders.filter(o=>o.status!=="cancelled").length:0)} detail="Per non-cancelled order"/><Metric label="Units sold" value={String(salesItems.reduce((n,i)=>n+i.quantity,0))} detail="Recorded order items"/></div></div>
+          <div className="border border-[#ded8cf] bg-white p-5 md:p-7"><p className="eyebrow text-muted-foreground">BEST SELLERS</p><h2 className="font-display mt-1 text-3xl">Product performance</h2>{salesByProduct.map((p,i)=><div key={p.id} className="flex justify-between border-b border-[#eee9e1] py-3 text-sm"><span>{i+1}. {p.name}</span><strong>{p.units} units</strong></div>)}{!salesByProduct.length&&<p className="mt-4 text-sm text-muted-foreground">Sales rankings will appear after orders are placed.</p>}</div>
+        </section>
+
+        <section id="store-settings" className="mt-12 max-w-3xl border border-[#ded8cf] bg-white p-5 md:p-7">
+          <p className="eyebrow text-muted-foreground">STOREFRONT CONFIGURATION</p><h2 className="font-display mt-1 text-3xl">Store settings</h2><p className="mt-1 text-xs text-muted-foreground">These details are saved in your Supabase store_settings record.</p>
+          <form onSubmit={saveStoreSettings} className="mt-5 space-y-4">
+            <Field label="Announcement bar"><input name="announcement" defaultValue={storeSettings?.announcement??""} className={fieldClass}/></Field>
+            <Field label="WhatsApp number"><input name="whatsapp_number" defaultValue={storeSettings?.whatsapp_number??""} className={fieldClass}/></Field>
+            <Field label="Instagram URL"><input name="instagram_url" type="url" defaultValue={storeSettings?.instagram_url??"https://www.instagram.com/astra_stylin/"} className={fieldClass}/></Field>
+            <Field label="Contact email"><input name="contact_email" type="email" defaultValue={storeSettings?.contact_email??""} className={fieldClass}/></Field>
+            <button disabled={settingsSaving} className="bg-[#711e27] px-6 py-3 text-[10px] tracking-widest text-white disabled:opacity-50">{settingsSaving?"Saving…":"Save store settings"}</button>
+          </form>
         </section>
       </div>
     </main>
