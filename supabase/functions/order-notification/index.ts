@@ -52,7 +52,7 @@ Deno.serve(async (request: Request) => {
     });
     const { data: order, error: orderError } = await adminClient
       .from("orders")
-      .select("id, order_number, user_id, shipping_name, shipping_phone, line1, line2, city, state, postal_code, notes, subtotal, total, status, created_at, order_items(product_name, colour, size, quantity, unit_price)")
+      .select("id, order_number, user_id, shipping_name, shipping_phone, line1, line2, city, state, postal_code, notes, subtotal, total, status, created_at, order_items(product_name, colour, size, quantity, unit_price, image_url)")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -60,9 +60,38 @@ Deno.serve(async (request: Request) => {
     if (order.user_id !== authData.user.id) return Response.json({ error: "You cannot notify for this order." }, { status: 403, headers: corsHeaders });
 
     const money = (amount: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(amount));
-    const itemRows = (order.order_items ?? []).map((item: Record<string, unknown>) =>
-      `<tr><td style="padding:10px;border-bottom:1px solid #eee">${escapeHtml(item.product_name)}<br><small>${escapeHtml(item.colour || "—")} · Size ${escapeHtml(item.size)} × ${escapeHtml(item.quantity)}</small></td><td style="padding:10px;border-bottom:1px solid #eee;text-align:right">${money(Number(item.unit_price) * Number(item.quantity))}</td></tr>`
-    ).join("");
+
+    // order_items.image_url is snapshotted at checkout, so the email keeps
+    // the exact product image that belonged to the purchased item.
+    const resolveEmailImage = (value: unknown): string | null => {
+      const raw = String(value ?? "").trim();
+      if (!raw) return null;
+      if (/^https:\/\//i.test(raw)) return raw;
+      if (raw.startsWith("/")) return `https://astra-stylin-fashion.vercel.app${raw}`;
+
+      // Also support storage object paths saved by the admin uploader.
+      const storagePath = raw.replace(/^storage:/i, "").replace(/^\/+/, "");
+      const bucketPath = storagePath.startsWith("product-images/")
+        ? storagePath.slice("product-images/".length)
+        : storagePath;
+      if (!bucketPath || bucketPath.includes("..")) return null;
+      return `${supabaseUrl}/storage/v1/object/public/product-images/${bucketPath.split("/").map(encodeURIComponent).join("/")}`;
+    };
+
+    const itemRows = (order.order_items ?? []).map((item: Record<string, unknown>) => {
+      const imageUrl = resolveEmailImage(item.image_url);
+      const imageCell = imageUrl
+        ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.product_name)}" width="84" height="104" style="display:block;width:84px;height:104px;object-fit:cover;border:0;background:#f3eee8" />`
+        : `<div style="width:84px;height:104px;background:#f3eee8;color:#8b8178;text-align:center;line-height:104px;font-size:10px">ASTRA STYLIN</div>`;
+      return `<tr>
+        <td width="100" valign="top" style="padding:12px 10px;border-bottom:1px solid #eee">${imageCell}</td>
+        <td valign="middle" style="padding:12px 10px;border-bottom:1px solid #eee;color:#211b18">
+          <strong>${escapeHtml(item.product_name)}</strong><br>
+          <small style="color:#777">${escapeHtml(item.colour || "—")} · Size ${escapeHtml(item.size)} × ${escapeHtml(item.quantity)}</small>
+        </td>
+        <td valign="middle" style="padding:12px 10px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">${money(Number(item.unit_price) * Number(item.quantity))}</td>
+      </tr>`;
+    }).join("");
     const address = [order.line1, order.line2, order.city, order.state, order.postal_code].filter(Boolean).map(escapeHtml).join(", ");
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
