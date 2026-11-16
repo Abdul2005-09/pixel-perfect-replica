@@ -9,13 +9,45 @@ export const COLLECTIONS = [
   { slug: "graphic-tees", name: "Graphic T-Shirts" },
   { slug: "textured-tees", name: "Textured T-Shirts" },
   { slug: "zip-polos", name: "Zip Polos" },
+  { slug: "oversized-tees", name: "Oversized T-Shirts" },
+  { slug: "regular-fit-tees", name: "Regular Fit T-Shirts" },
+  { slug: "slim-fit-tees", name: "Slim Fit T-Shirts" },
+  { slug: "plain-tees", name: "Plain / Solid T-Shirts" },
+  { slug: "printed-tees", name: "Printed T-Shirts" },
+  { slug: "embroidered-tees", name: "Embroidered T-Shirts" },
+  { slug: "typography-tees", name: "Typography T-Shirts" },
+  { slug: "vintage-tees", name: "Vintage T-Shirts" },
+  { slug: "anime-tees", name: "Anime T-Shirts" },
+  { slug: "graphic-illustration-tees", name: "Illustration T-Shirts" },
+  { slug: "sports-jerseys", name: "Sports Jerseys" },
+  { slug: "football-tees", name: "Football T-Shirts" },
+  { slug: "raglan-tees", name: "Raglan T-Shirts" },
+  { slug: "henley-tees", name: "Henley T-Shirts" },
+  { slug: "v-neck-tees", name: "V-Neck T-Shirts" },
+  { slug: "crew-neck-tees", name: "Crew Neck T-Shirts" },
+  { slug: "long-sleeve-tees", name: "Long Sleeve T-Shirts" },
+  { slug: "half-sleeve-tees", name: "Half Sleeve T-Shirts" },
+  { slug: "sleeveless-tees", name: "Sleeveless / Tank T-Shirts" },
+  { slug: "pocket-tees", name: "Pocket T-Shirts" },
+  { slug: "striped-tees", name: "Striped T-Shirts" },
+  { slug: "color-block-tees", name: "Colour Block T-Shirts" },
+  { slug: "washed-tees", name: "Washed T-Shirts" },
+  { slug: "acid-wash-tees", name: "Acid Wash T-Shirts" },
+  { slug: "heavyweight-tees", name: "Heavyweight T-Shirts" },
+  { slug: "performance-tees", name: "Performance / Activewear T-Shirts" },
+  { slug: "premium-cotton-tees", name: "Premium Cotton T-Shirts" },
+  { slug: "minimalist-tees", name: "Minimalist T-Shirts" },
+  { slug: "zip-neck-tees", name: "Zip Neck T-Shirts" },
+  { slug: "thermal-tees", name: "Thermal T-Shirts" },
 ] as const;
 export const NEW_ARRIVALS = { slug: "new-arrivals", name: "New Arrivals" } as const;
 
 export function collectionName(slug: string | undefined) {
   if (!slug) return "All Products";
   if (slug === NEW_ARRIVALS.slug) return NEW_ARRIVALS.name;
-  return COLLECTIONS.find((c) => c.slug === slug)?.name ?? "All Products";
+  const known = COLLECTIONS.find((c) => c.slug === slug)?.name;
+  if (known) return known;
+  return slug.split("-").filter(Boolean).map((word) => word[0]!.toUpperCase() + word.slice(1)).join(" ");
 }
 
 export type ProductImage = { id: string; url: string; kind: string; sort_order: number; path: string };
@@ -189,9 +221,10 @@ export function slugify(s: string) {
 /** Collections that currently contain at least one active product. */
 export function collectionsWithProducts(products: Product[]) {
   const list: { slug: string; name: string; image?: string | undefined; count: number }[] = [];
-  for (const c of COLLECTIONS) {
-    const items = products.filter((p) => p.collection === c.slug);
-    if (items.length) list.push({ slug: c.slug, name: c.name, image: primaryImage(items[0]!), count: items.length });
+  const collectionSlugs = [...new Set(products.map((p) => p.collection).filter(Boolean))];
+  for (const slug of collectionSlugs) {
+    const items = products.filter((p) => p.collection === slug);
+    if (items.length) list.push({ slug, name: collectionName(slug), image: primaryImage(items[0]!), count: items.length });
   }
   const fresh = products.filter((p) => p.is_new);
   if (fresh.length)
