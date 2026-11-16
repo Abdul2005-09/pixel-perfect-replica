@@ -85,11 +85,16 @@ export function SiteFooter() {
                 <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="hover:text-champagne">
                   <MessageCircle className="size-5" strokeWidth={1.4} />
                 </a>
-                {settings?.instagram_url && (
-                  <a href={settings.instagram_url} target="_blank" rel="noreferrer" aria-label="Instagram" className="hover:text-champagne">
-                    <Instagram className="size-5" strokeWidth={1.4} />
-                  </a>
-                )}
+                <a
+                  href="https://www.instagram.com/astra_stylin?exln=dWh0czkyanNiOWlu"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram @astra_stylin"
+                  className="inline-flex items-center gap-2 text-sm hover:text-champagne"
+                >
+                  <Instagram className="size-5" strokeWidth={1.4} />
+                  <span>@astra_stylin</span>
+                </a>
               </div>
             </div>
           </div>
