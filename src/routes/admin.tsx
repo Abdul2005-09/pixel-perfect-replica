@@ -52,6 +52,7 @@ function Admin() {
   const { data: storeSettings } = useQuery({ queryKey: ["admin", "store-settings"], queryFn: async () => { const { data, error } = await supabase.from("store_settings").select("*").eq("id", 1).maybeSingle(); if (error) throw error; return data; } });
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [customCollection, setCustomCollection] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "archived" | "sold_out">("all");
 
@@ -79,7 +80,7 @@ function Admin() {
 
   async function renameCollection(oldSlug: string, name: string) { const next = slugify(name); if (!next) { toast.error("Enter a collection name."); return; } const { error } = await supabase.from("products").update({ collection: next }).eq("collection", oldSlug); if (error) { toast.error(error.message); return; } toast.success("Collection renamed"); await refresh(); }
 
-  async function saveStoreSettings(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); setSettingsSaving(true); const { error } = await supabase.from("store_settings").update({ announcement: String(data.get("announcement") ?? "").trim(), whatsapp_number: String(data.get("whatsapp_number") ?? "").replace(/\\D/g, ""), instagram_url: String(data.get("instagram_url") ?? "").trim() || null, contact_email: String(data.get("contact_email") ?? "").trim() || null }).eq("id", 1); setSettingsSaving(false); if (error) { toast.error(error.message); return; } toast.success("Store settings saved"); await qc.invalidateQueries({ queryKey: ["admin", "store-settings"] }); }
+  async function saveStoreSettings(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); setSettingsSaving(true); const { error } = await supabase.from("store_settings").update({ announcement: String(data.get("announcement") ?? "").trim(), whatsapp_number: String(data.get("whatsapp_number") ?? "").replace(/\D/g, ""), instagram_url: String(data.get("instagram_url") ?? "").trim() || null, contact_email: String(data.get("contact_email") ?? "").trim() || null }).eq("id", 1); setSettingsSaving(false); if (error) { toast.error(error.message); return; } toast.success("Store settings saved"); await qc.invalidateQueries({ queryKey: ["admin", "store-settings"] }); }
 
   async function refresh() {
     await Promise.all([
@@ -110,6 +111,30 @@ function Admin() {
     const { error } = await supabase.from("products").update(changes).eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Product updated");
+    await refresh();
+  }
+
+  async function saveProductEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingProduct) return;
+    const data = new FormData(event.currentTarget);
+    const name = String(data.get("name") ?? "").trim();
+    const price = Number(data.get("price"));
+    const collection = slugify(String(data.get("collection") ?? ""));
+    if (!name || !slugify(name) || !Number.isFinite(price) || price <= 0 || !collection) {
+      toast.error("Check the product name, price and collection.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("products").update({
+      name, slug: slugify(name), price, collection,
+      subtitle: String(data.get("subtitle") ?? "").trim() || null,
+      description: String(data.get("description") ?? "").trim() || null,
+    }).eq("id", editingProduct.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Product details saved");
+    setEditingProduct(null);
     await refresh();
   }
 
@@ -296,7 +321,7 @@ function Admin() {
             <table className="w-full min-w-[850px] text-sm">
               <thead className="bg-[#f1ede6]"><tr><th className="eyebrow p-3 text-left">Product</th><th className="eyebrow p-3 text-left">Price</th><th className="eyebrow p-3">Total stock</th><th className="eyebrow p-3">Store label</th><th className="eyebrow p-3">Visibility</th><th className="eyebrow p-3">Manage</th></tr></thead>
               <tbody>
-                {productsLoading ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading products...</td></tr> : visibleProducts.map((p) => <ProductRow key={p.id} product={p} onUpdate={updateProduct} onStock={setStock} />)}
+                {productsLoading ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading products...</td></tr> : visibleProducts.map((p) => <ProductRow key={p.id} product={p} onEdit={() => setEditingProduct(p)} onUpdate={updateProduct} onStock={setStock} />)}
                 {!productsLoading && !visibleProducts.length && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No products in this view.</td></tr>}
               </tbody>
             </table>
@@ -315,6 +340,19 @@ function Admin() {
             </div>)}
           </div>}
         </section>
+
+        {editingProduct && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <form onSubmit={saveProductEdit} className="max-h-[90vh] w-full max-w-xl overflow-y-auto bg-[#fffdfa] p-6 shadow-2xl">
+            <div className="flex items-center justify-between"><div><p className="eyebrow text-burgundy">PRODUCT EDITOR</p><h2 className="font-display text-2xl">Edit product</h2></div><button type="button" onClick={() => setEditingProduct(null)} className="border border-[#ded8cf] px-3 py-2">Close</button></div>
+            <div className="mt-5 space-y-4">
+              <Field label="Product name"><input name="name" required defaultValue={editingProduct.name} className={fieldClass}/></Field>
+              <div className="grid grid-cols-2 gap-3"><Field label="Price (₹)"><input name="price" type="number" min="1" required defaultValue={editingProduct.price} className={fieldClass}/></Field><Field label="Collection slug"><input name="collection" required defaultValue={editingProduct.collection} className={fieldClass}/></Field></div>
+              <Field label="Subtitle"><input name="subtitle" defaultValue={editingProduct.subtitle ?? ""} className={fieldClass}/></Field>
+              <Field label="Description"><textarea name="description" rows={4} defaultValue={editingProduct.description ?? ""} className="w-full border border-[#ded8cf] bg-white p-3 text-sm"/></Field>
+            </div>
+            <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setEditingProduct(null)} className="border border-[#ded8cf] px-5 py-3 text-xs">Cancel</button><button disabled={saving} className="bg-[#711e27] px-5 py-3 text-xs text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button></div>
+          </form>
+        </div>}
 
         <section id="collections" className="mt-12 border border-[#ded8cf] bg-white p-5 md:p-7">
           <p className="eyebrow text-muted-foreground">CATALOGUE STRUCTURE</p><h2 className="font-display mt-1 text-3xl">Collections</h2>
@@ -371,7 +409,7 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
 function AlertRow({ product, label }: { product: Product; label: string }) {
   return <div className="flex items-center justify-between gap-3 border-b border-[#eee9e1] pb-3 text-sm"><span>{product.name}</span><span className="text-xs font-medium text-burgundy">{label}</span></div>;
 }
-function ProductRow({ product, onUpdate, onStock }: { product: Product; onUpdate: (id: string, changes: Partial<Pick<Product, "is_new" | "is_featured" | "status">>) => void; onStock: (id: string, size: string, value: string) => void }) {
+function ProductRow({ product, onEdit, onUpdate, onStock }: { product: Product; onEdit: () => void; onUpdate: (id: string, changes: Partial<Pick<Product, "is_new" | "is_featured" | "status">>) => void; onStock: (id: string, size: string, value: string) => void }) {
   const stock = totalStock(product);
   const label = stock <= 0 ? "Sold out" : stock <= 5 ? "Low stock" : product.is_new ? "New arrival" : product.is_featured ? "Featured" : "Regular";
   return <>
@@ -381,7 +419,7 @@ function ProductRow({ product, onUpdate, onStock }: { product: Product; onUpdate
       <td className="p-3 text-center"><span className={stock <= 5 ? "font-semibold text-burgundy" : ""}>{stock}</span></td>
       <td className="p-3 text-center">{label}</td>
       <td className="p-3 text-center"><select value={product.status} onChange={(e) => onUpdate(product.id, { status: e.target.value })} className="h-9 border border-[#ded8cf] bg-white px-2 text-xs"><option value="active">Active</option><option value="archived">Archived</option></select></td>
-      <td className="p-3"><div className="flex flex-col gap-1 text-xs"><label className="flex items-center gap-2"><input type="checkbox" checked={product.is_new} onChange={(e) => onUpdate(product.id, { is_new: e.target.checked })} /> New arrival</label><label className="flex items-center gap-2"><input type="checkbox" checked={product.is_featured} onChange={(e) => onUpdate(product.id, { is_featured: e.target.checked })} /> Featured</label></div></td>
+      <td className="p-3"><div className="flex items-center gap-3 text-xs"><div className="flex flex-col gap-1"><label className="flex items-center gap-2"><input type="checkbox" checked={product.is_new} onChange={(e) => onUpdate(product.id, { is_new: e.target.checked })} /> New arrival</label><label className="flex items-center gap-2"><input type="checkbox" checked={product.is_featured} onChange={(e) => onUpdate(product.id, { is_featured: e.target.checked })} /> Featured</label></div><button type="button" onClick={onEdit} className="border border-[#ded8cf] p-2 hover:border-[#711e27]" aria-label={"Edit " + product.name}>Edit</button></div></td>
     </tr>
     <tr className="border-t border-[#eee9e1] bg-[#fcfaf7]"><td colSpan={6} className="px-4 py-3"><div className="flex flex-wrap items-center gap-3"><span className="eyebrow text-muted-foreground">EDIT SIZE STOCK</span>{SIZES.map((size) => { const quantity = product.inventory.find((i) => i.size === size)?.quantity ?? 0; return <label key={size} className="flex items-center gap-2 text-xs"><span className="font-medium">{size}</span><input type="number" min="0" defaultValue={quantity} onBlur={(e) => { if (e.target.value !== String(quantity)) onStock(product.id, size, e.target.value); }} className="h-8 w-16 border border-[#ded8cf] bg-white text-center" aria-label={`${product.name} size ${size} stock`} /></label>; })}</div></td></tr>
   </>;
