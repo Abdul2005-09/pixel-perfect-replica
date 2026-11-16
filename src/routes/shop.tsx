@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ProductGrid } from "@/components/site/ProductCard";
 import { meta } from "@/components/site/InfoPage";
-import { COLLECTIONS, NEW_ARRIVALS, collectionName, filterByCollection, productsQuery } from "@/lib/catalog";
+import { NEW_ARRIVALS, collectionName, filterByCollection, productsQuery } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/shop")({
@@ -17,7 +17,8 @@ function Shop() {
   const { collection } = Route.useSearch();
   const { data } = useSuspenseQuery(productsQuery());
   const list = filterByCollection(data, collection);
-  const tabs = [{ slug: undefined, name: "All" }, ...COLLECTIONS.filter((c) => data.some((p) => p.collection === c.slug)), NEW_ARRIVALS];
+  const collectionTabs = [...new Set(data.map((p) => p.collection).filter(Boolean))].map((slug) => ({ slug, name: collectionName(slug) }));
+  const tabs = [{ slug: undefined, name: "All" }, ...collectionTabs, NEW_ARRIVALS];
   return (
     <section className="mx-auto max-w-[1440px] px-5 py-16 md:px-10">
       <h1 className="font-display text-center text-5xl uppercase md:text-7xl">{collectionName(collection)}</h1>
