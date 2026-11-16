@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { requireSession } from "@/lib/auth";
 import {
+  COLLECTIONS,
   SIZES,
   adminProductsQuery,
   formatINR,
@@ -14,12 +15,6 @@ import {
 } from "@/lib/catalog";
 
 const STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"] as const;
-const COLLECTIONS = [
-  { value: "polos", label: "Polo Collection" },
-  { value: "graphic-tees", label: "Graphic T-Shirts" },
-  { value: "textured-tees", label: "Textured T-Shirts" },
-  { value: "zip-polos", label: "Zip Polos" },
-];
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -52,6 +47,7 @@ function Admin() {
     },
   });
   const [showAdd, setShowAdd] = useState(false);
+  const [customCollection, setCustomCollection] = useState(false);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "archived" | "sold_out">("all");
 
@@ -116,10 +112,17 @@ function Admin() {
     const name = String(data.get("name") ?? "").trim();
     const price = Number(data.get("price"));
     const slug = slugify(name);
+    const selectedCollection = String(data.get("collection") ?? "polos");
+    const customCollectionName = String(data.get("customCollection") ?? "").trim();
+    const collection = selectedCollection === "__custom__" ? slugify(customCollectionName) : selectedCollection;
     const modelImage = data.get("modelImage");
     const productImage = data.get("productImage");
     if (!name || !slug || !Number.isFinite(price) || price <= 0) {
       toast.error("Enter a product name and a valid price.");
+      return;
+    }
+    if (!collection || (selectedCollection === "__custom__" && !customCollectionName)) {
+      toast.error("Choose a collection or enter a custom collection name.");
       return;
     }
     if (!(modelImage instanceof File) || !modelImage.size || !(productImage instanceof File) || !productImage.size) {
@@ -135,7 +138,7 @@ function Admin() {
         price,
         subtitle: String(data.get("subtitle") ?? "").trim() || null,
         description: String(data.get("description") ?? "").trim() || null,
-        collection: String(data.get("collection") ?? "polos"),
+        collection,
         status: "active",
         is_new: data.get("is_new") === "on",
         is_featured: data.get("is_featured") === "on",
@@ -173,6 +176,7 @@ function Admin() {
 
       toast.success("Product added and images uploaded to Supabase.");
       form.reset();
+      setCustomCollection(false);
       setShowAdd(false);
       await refresh();
     } catch (error) {
@@ -246,7 +250,13 @@ function Admin() {
                 <Field label="Short subtitle"><input name="subtitle" placeholder="Premium unisex fit" className={fieldClass} /></Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Price (₹)"><input name="price" required type="number" min="1" step="1" placeholder="849" className={fieldClass} /></Field>
-                  <Field label="Collection"><select name="collection" className={fieldClass}>{COLLECTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></Field>
+                  <Field label="Collection">
+                    <select name="collection" defaultValue="polos" onChange={(e) => setCustomCollection(e.target.value === "__custom__")} className={fieldClass}>
+                      {COLLECTIONS.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                      <option value="__custom__">＋ Add a custom collection…</option>
+                    </select>
+                    {customCollection && <input name="customCollection" required placeholder="e.g. Minimalist Essentials" className={fieldClass + " mt-2"} />}
+                  </Field>
                 </div>
                 <Field label="Description"><textarea name="description" rows={3} placeholder="Describe the fabric, fit and details..." className={fieldClass} /></Field>
                 <div className="flex flex-wrap gap-5 text-sm">
