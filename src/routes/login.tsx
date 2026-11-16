@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { safeRedirect, useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
@@ -45,9 +44,17 @@ function Login() {
   }
 
   async function google() {
-    if (redirect) sessionStorage.setItem("astra-after-login", target);
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/login${redirect ? `?redirect=${encodeURIComponent(target)}` : ""}` });
-    if (r.error) toast.error(r.error.message ?? "Google sign-in failed");
+    setBusy(true);
+    const redirectTo = new URL("/login", window.location.origin);
+    if (redirect) redirectTo.searchParams.set("redirect", target);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: redirectTo.toString() },
+    });
+    if (error) {
+      toast.error(error.message || "Google sign-in failed");
+      setBusy(false);
+    }
   }
 
   return (
@@ -66,7 +73,7 @@ function Login() {
         <Button type="submit" size="lg" className="w-full" disabled={busy}>{busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}</Button>
       </form>
       <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" /></div>
-      <button onClick={google} className="flex h-11 w-full items-center justify-center gap-[10px] border border-[#747775] bg-[#FFFFFF] px-3 text-sm font-medium text-[#1F1F1F]">
+      <button onClick={google} className="flex h-11 w-full items-center justify-center gap-[10px] border border-[#747775] bg-[#FFFFFF] px-3 text-sm font-medium text-[#1F1F1F]" disabled={busy}>
         <span aria-hidden="true" dangerouslySetInnerHTML={{ __html: GOOGLE }} className="flex" />Continue with Google
       </button>
     </section>
