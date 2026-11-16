@@ -5,9 +5,6 @@ import { ProductGrid } from "@/components/site/ProductCard";
 import { CollectionCarousel } from "@/components/site/CollectionCarousel";
 import { Logo, StarGlyph } from "@/components/site/Logo";
 import { collectionsWithProducts, primaryImage, productsQuery } from "@/lib/catalog";
-import cover from "@/assets/catalog/campaign-paris-polo-cover.jpg.asset.json";
-import parisModel from "@/assets/catalog/paris-polo-model.jpg.asset.json";
-import henleyModel from "@/assets/catalog/classic-white-henley-model.jpg.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -52,11 +49,11 @@ function Home() {
               params={{ slug: "paris-polo" }}
               className="group relative hidden aspect-[3/4] overflow-hidden md:block"
             >
-              <img src={parisModel.url} alt="Model wearing the Paris Polo" className="img-zoom h-full w-full object-cover" />
+              <img src="/catalog/paris-polo-model.jpg" alt="Model wearing the Paris Polo" className="img-zoom h-full w-full object-cover" />
             </Link>
             <div className="relative aspect-[3/4] overflow-hidden md:aspect-[3/4.3]">
               <img
-                src={cover.url}
+                src="/catalog/campaign-paris-polo-cover.jpg"
                 alt="ASTRA STYLIN campaign — Paris Polo"
                 className="animate-fade-in h-full w-full object-cover object-top"
                 fetchPriority="high"
@@ -67,7 +64,7 @@ function Home() {
               params={{ slug: "classic-white-henley" }}
               className="group relative hidden aspect-[3/4] overflow-hidden md:block"
             >
-              <img src={henleyModel.url} alt="Model wearing the Classic White henley" className="img-zoom h-full w-full object-cover" />
+              <img src="/catalog/classic-white-henley-model.jpg" alt="Model wearing the Classic White henley" className="img-zoom h-full w-full object-cover" />
             </Link>
           </div>
           <div className="flex flex-col items-start justify-between gap-6 py-8 md:flex-row md:items-center md:py-10">
