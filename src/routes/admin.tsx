@@ -277,7 +277,7 @@ function Admin() {
             <table className="w-full min-w-[850px] text-sm">
               <thead className="bg-[#f1ede6]"><tr><th className="eyebrow p-3 text-left">Product</th><th className="eyebrow p-3 text-left">Price</th><th className="eyebrow p-3">Total stock</th><th className="eyebrow p-3">Store label</th><th className="eyebrow p-3">Visibility</th><th className="eyebrow p-3">Manage</th></tr></thead>
               <tbody>
-                {productsLoading ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading products...</td></tr> : visibleProducts.map((p) => <ProductRow key={p.id} product={p} onUpdate={updateProduct} />)}
+                {productsLoading ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading products...</td></tr> : visibleProducts.map((p) => <ProductRow key={p.id} product={p} onUpdate={updateProduct} onStock={setStock} />)}
                 {!productsLoading && !visibleProducts.length && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No products in this view.</td></tr>}
               </tbody>
             </table>
@@ -313,15 +313,18 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
 function AlertRow({ product, label }: { product: Product; label: string }) {
   return <div className="flex items-center justify-between gap-3 border-b border-[#eee9e1] pb-3 text-sm"><span>{product.name}</span><span className="text-xs font-medium text-burgundy">{label}</span></div>;
 }
-function ProductRow({ product, onUpdate }: { product: Product; onUpdate: (id: string, changes: Partial<Pick<Product, "is_new" | "is_featured" | "status">>) => void }) {
+function ProductRow({ product, onUpdate, onStock }: { product: Product; onUpdate: (id: string, changes: Partial<Pick<Product, "is_new" | "is_featured" | "status">>) => void; onStock: (id: string, size: string, value: string) => void }) {
   const stock = totalStock(product);
   const label = stock <= 0 ? "Sold out" : stock <= 5 ? "Low stock" : product.is_new ? "New arrival" : product.is_featured ? "Featured" : "Regular";
-  return <tr className="border-t border-[#eee9e1]">
-    <td className="p-3"><div className="flex items-center gap-3"><div className="size-12 shrink-0 overflow-hidden bg-[#f1ede6]">{product.images[0]?.url && <img src={product.images[0].url} alt="" className="h-full w-full object-cover" />}</div><div><p className="font-medium">{product.name}</p><p className="text-xs text-muted-foreground">{product.collection}</p></div></div></td>
-    <td className="p-3">{formatINR(product.price)}</td>
-    <td className="p-3 text-center"><span className={stock <= 5 ? "font-semibold text-burgundy" : ""}>{stock}</span></td>
-    <td className="p-3 text-center">{label}</td>
-    <td className="p-3 text-center"><select value={product.status} onChange={(e) => onUpdate(product.id, { status: e.target.value })} className="h-9 border border-[#ded8cf] bg-white px-2 text-xs"><option value="active">Active</option><option value="archived">Archived</option></select></td>
-    <td className="p-3"><div className="flex flex-col gap-1 text-xs"><label className="flex items-center gap-2"><input type="checkbox" checked={product.is_new} onChange={(e) => onUpdate(product.id, { is_new: e.target.checked })} /> New arrival</label><label className="flex items-center gap-2"><input type="checkbox" checked={product.is_featured} onChange={(e) => onUpdate(product.id, { is_featured: e.target.checked })} /> Featured</label></div></td>
-  </tr>;
+  return <>
+    <tr className="border-t border-[#eee9e1]">
+      <td className="p-3"><div className="flex items-center gap-3"><div className="size-12 shrink-0 overflow-hidden bg-[#f1ede6]">{product.images[0]?.url && <img src={product.images[0].url} alt="" className="h-full w-full object-cover" />}</div><div><p className="font-medium">{product.name}</p><p className="text-xs text-muted-foreground">{product.collection}</p></div></div></td>
+      <td className="p-3">{formatINR(product.price)}</td>
+      <td className="p-3 text-center"><span className={stock <= 5 ? "font-semibold text-burgundy" : ""}>{stock}</span></td>
+      <td className="p-3 text-center">{label}</td>
+      <td className="p-3 text-center"><select value={product.status} onChange={(e) => onUpdate(product.id, { status: e.target.value })} className="h-9 border border-[#ded8cf] bg-white px-2 text-xs"><option value="active">Active</option><option value="archived">Archived</option></select></td>
+      <td className="p-3"><div className="flex flex-col gap-1 text-xs"><label className="flex items-center gap-2"><input type="checkbox" checked={product.is_new} onChange={(e) => onUpdate(product.id, { is_new: e.target.checked })} /> New arrival</label><label className="flex items-center gap-2"><input type="checkbox" checked={product.is_featured} onChange={(e) => onUpdate(product.id, { is_featured: e.target.checked })} /> Featured</label></div></td>
+    </tr>
+    <tr className="border-t border-[#eee9e1] bg-[#fcfaf7]"><td colSpan={6} className="px-4 py-3"><div className="flex flex-wrap items-center gap-3"><span className="eyebrow text-muted-foreground">EDIT SIZE STOCK</span>{SIZES.map((size) => { const quantity = product.inventory.find((i) => i.size === size)?.quantity ?? 0; return <label key={size} className="flex items-center gap-2 text-xs"><span className="font-medium">{size}</span><input type="number" min="0" defaultValue={quantity} onBlur={(e) => { if (e.target.value !== String(quantity)) onStock(product.id, size, e.target.value); }} className="h-8 w-16 border border-[#ded8cf] bg-white text-center" aria-label={`${product.name} size ${size} stock`} /></label>; })}</div></td></tr>
+  </>;
 }
