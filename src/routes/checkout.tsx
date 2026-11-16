@@ -54,7 +54,7 @@ function Checkout() {
     clear();
     const id = (data as { id: string }).id;
     const { error: notificationError } = await supabase.functions.invoke("order-notification", { body: { order_id: id } });
-    if (notificationError) console.error("[ASTRA] Admin order email could not be sent:", notificationError.message);
+    if (notificationError) { console.error("[ASTRA] Admin order email could not be sent:", notificationError.message); toast.warning("Your order was placed, but the store notification email could not be sent. Please continue on WhatsApp."); }
     navigate({ to: "/order/$id", params: { id } });
   }
 
